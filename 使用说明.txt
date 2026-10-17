@@ -1,0 +1,99 @@
+﻿========================================================
+ Windows 移动热点 通用开关 (HotspotSwitch)
+========================================================
+
+【适用症状】
+  1. 设置 → 网络和 Internet → 移动热点，开关是灰的点不动
+  2. 开关能点但提示"未建立以太网、Wi-Fi 或手机网络数据连接"
+  3. 热点能开，手机连上却打不开网页
+  4. 无线网卡被禁用导致热点不可用
+
+  最常见的原因：电脑用"宽带连接（PPPoE 拨号）"上网。
+  Windows 设置页的热点判断只认以太网 / Wi-Fi / 手机网络，
+  识别不到拨号连接，于是把开关直接置灰。这是系统限制，
+  改设置改不好，用本工具绕过它即可。
+
+
+【怎么用】
+  双击  HotspotSwitch.cmd  →  打开操作面板
+
+  面板上可以看到：
+    · 热点当前状态（已开启 / 已关闭）
+    · 热点名称、密码（点一下即复制）
+    · 已连接设备数量
+    · 「开启热点 / 关闭热点」大按钮
+    · 「修改名称/密码」   改成你喜欢的名字
+    · 「一键修复」        自动启用网卡、拉起服务、开热点
+
+  也可以直接双击：
+    ON-start.cmd    打开热点
+    OFF-stop.cmd    关闭热点
+
+
+【命令行用法】（进阶，可写进计划任务）
+  在 PowerShell 里：
+
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -On
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -Off
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -Toggle
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -Status
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -Diag
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -Repair
+
+  改名称和密码：
+    powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -SetSsid "hotpot" -SetPassword "12345678"
+
+  说明：-NoGui 不弹窗只打印文字，-Quiet 静默（配合计划任务）。
+
+
+【原理（为什么能绕过灰掉的开关）】
+  设置页那个开关是"壳"，底层真正干活的是 Windows 的
+  NetworkOperatorTetheringManager 接口。本工具直接调用该接口：
+      GetTetheringCapabilityFromConnectionProfile()  查询能否共享
+      StartTetheringAsync() / StopTetheringAsync()   启停热点
+      ConfigureAccessPointAsync()                    改名称密码
+
+  实测在 PPPoE 拨号环境下，该接口返回 TetheringCapability = Enabled，
+  调用 StartTetheringAsync 返回 Success，热点正常广播，
+  系统还会自动配好 ICS 共享（虚拟网卡拿到 192.168.137.1）。
+  也就是说：能力是有的，只是设置页不给点。
+
+
+【常见问题】
+  Q: 提示"当前网络不支持创建热点"？
+  A: 点「一键修复」。若仍不行，按顺序查：
+       1) 设备管理器里无线网卡是否被禁用
+       2) 驱动是否支持"承载网络"（老驱动可能不支持）
+       3) 台式机是否根本没插无线网卡
+       4) 网络是否真的连通（先能上网再开热点）
+
+  Q: 手机连上了但打不开网页？
+  A: 多半是代理软件接管了流量。关掉 Clash / v2ray 的 TUN 模式
+     （系统代理可以留），或临时退出 VPN 再试。
+
+  Q: 重启电脑后热点没了？
+  A: 正常，热点不会自动开启。双击 ON-start.cmd 即可。
+     想开机自动开，可用「任务计划程序」在"登录时"运行它。
+
+  Q: 关掉热点后，设置页开关还是灰的？
+  A: 这是正常现象，本工具不依赖那个开关，用面板操作就行。
+
+
+【系统要求】
+  · Windows 10 / 11（需要"移动热点"功能，Win7 没有）
+  · 系统自带的 Windows PowerShell 5.1
+    （不要用 PowerShell 7 / pwsh 运行，它不支持本工具依赖的 WinRT 接口）
+  · 建议以普通用户运行即可；「一键修复」中的启用网卡
+    和启动服务两项需要管理员权限，失败时会提示，不影响开热点
+
+
+【文件说明】
+  HotspotSwitch.cmd   双击打开面板（主入口）
+  ON-start.cmd        双击开热点
+  OFF-stop.cmd        双击关热点
+  HotspotSwitch.ps1   核心脚本（面板 + 命令行都靠它）
+  HotspotSwitch.log   运行日志，排查问题时看这个
+  使用说明.txt        本文件
+
+  整个文件夹可以随意复制 / 改名 / 打包分发，
+  脚本内部路径都按"自身所在目录"计算，不写死盘符。
