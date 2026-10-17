@@ -3,6 +3,14 @@
 > 设置页的「移动热点」开关是灰的、点不动？用宽带拨号（PPPoE）上网时开不了热点？
 > 这个小工具绕过那条限制，直接调用系统接口把热点开起来。
 
+## 适用场景
+
+主要给**校园网**这类环境用：宿舍/教室只有一根网线或一条宽带拨号，**没有路由器**，
+想让手机、平板、第二台电脑一起上网时，用它把本机的网络共享出去。
+
+- 适合：校园网宽带拨号（PPPoE）、单一网口、无路由器的小环境
+- 不需要：已经装了路由器，或本来就用 Wi-Fi 联网——那种情况设置页开关本来就是正常的
+
 ## 症状自查
 
 - 设置 → 网络和 Internet → 移动热点，开关**灰色点不动**
@@ -81,6 +89,8 @@ powershell -ExecutionPolicy Bypass -File "HotspotSwitch.ps1" -SetSsid "hotpot" -
 
 ## 已知限制
 
+- **只能用 2.4GHz**：热点走 Wi-Fi Direct，本工具拉起的网络固定在 2.4GHz，**无法使用 5GHz**
+- **速度上限约 100 Mbps**：受 2.4GHz 单频段和 ICS 共享转发限制，实测下载约 100 Mbps 封顶，达不到校园网本身的带宽
 - 热点不会开机自启（用任务计划程序可解决）
 - 电脑必须已经真正联网后才能开热点
 - 若手机连上却上不了网，先关掉代理软件的 **TUN 模式**（如 Clash），或临时断开 VPN
@@ -108,3 +118,5 @@ ConfigureAccessPointAsync()                     修改名称与密码
 `NetworkOperatorTetheringManager` directly, bypassing the greyed-out toggle in Settings that
 happens when the PC connects via PPPoE / broadband dial-up. No installation, no dependencies,
 UI + CLI, plus a one-click repair and a diagnostic report. Windows 10/11, Windows PowerShell 5.1.
+Made for campus networks / PPPoE without a router. Note: 2.4 GHz only (no 5 GHz), throughput capped
+at about 100 Mbps.
